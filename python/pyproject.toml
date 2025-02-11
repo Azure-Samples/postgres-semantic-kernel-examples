@@ -1,0 +1,41 @@
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+include = ["*.py", "*.pyi", "**/pyproject.toml", "*.ipynb"]
+preview = true
+
+[tool.ruff.lint]
+fixable = ["ALL"]
+unfixable = []
+select = [
+    "D", #pydocstyle checks
+    "E", #error checks
+    "F", #pyflakes checks
+    "I", #isort
+    "ISC", #implicit string concat
+    "INP", #implicit namespace package
+    "RSE", #raise exception parantheses check
+    "RET", #flake8-return check
+    "SIM", #flake8-simplify check
+    "TD", #todos
+    "FIX", #fixme checks 
+    "ERA", #remove connected out code
+    "RUF" #RUF specific rules
+]
+ignore = [
+    "D100", #allow missing docstring in public module
+    "D104", #allow missing docstring in public package
+    "TD003", #allow missing link to todo issue
+    "FIX002" #allow todo
+]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ruff.lint.per-file-ignores]
+# Ignore all directories named `tests` and `samples`.
+"tests/**" = ["D", "INP", "TD", "ERA001", "RUF"]
+"samples/**" = ["D", "INP", "ERA001", "RUF"]
+# Ignore all files that end in `_test.py`.
+"*_test.py" = ["D"]
+"*.ipynb" = ["CPY", "E501"]
