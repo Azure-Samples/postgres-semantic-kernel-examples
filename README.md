@@ -4,6 +4,8 @@
 
 This repository contains examples and sample code for using SemanticKernel with PostgreSQL in general and Azure DB for PostgreSQL in particular.
 
+These samples can be used with any PostgreSQL with the pgvector extension installed. Additionally, it has code to support using Entra Authentication for Azure DB for PostgreSQL. This is not required for other PostgreSQL instances.
+
 ### Docker setup
 
 Included is a `docker-compose.yml` file that sets up a PostgreSQL with the `pgvector` extension installed. This can be used to test the examples in this repository

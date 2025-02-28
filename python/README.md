@@ -12,6 +12,8 @@ pip install -e .
 
 Before running the examples, you need to configure your database and Azure OpenAI settings. Use the `.env.example` file in the `python` directory as a template to create a `.env` file with the proper settings for your database. Update the connection details for your PostgreSQL database and Azure OpenAI instance in the `.env` file.
 
+This project will work with any PostgreSQL instance that has pgvector installed.
+
 ### Using Azure DB for PostgreSQL
 
 This project includes connection logic to use Azure DB for PostgreSQL with Entra authentication. If the configured connection string does not contain a user or password, Entra Authentication is used with DefaultAzureCredentials. You'll need to be logged into the Azure CLI to correctly authenticate with your Entra credentials.

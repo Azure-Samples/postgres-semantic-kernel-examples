@@ -1,4 +1,20 @@
 # Copyright (c) Microsoft. All rights reserved.
+"""
+Asynchronous connection class for using Entra auth with Azure DB for PostgreSQL.
+This module provides an `AsyncEntraConnection` class that allows you to connect to Azure DB for PostgreSQL
+using Entra authentication with psycopg. It handles token acquisition and connection setup. It is not specific
+to this repository and can be used in any project that requires Entra authentication with Azure DB for PostgreSQL.
+
+For example:
+    
+    from pg_sk_examples.entra_connection import AsyncEntraConnection
+    from psycopg_pool import AsyncConnectionPool
+
+    async with AsyncConnectionPool("<connection string>", connection_class=AsyncEntraConnection) as pool:
+        ...
+
+"""
+
 import base64
 import json
 import logging
@@ -15,7 +31,14 @@ logger = logging.getLogger(__name__)
 
 
 async def get_entra_token_async(credential: AsyncTokenCredential) -> str:
-    """Get the password from Entra using the provided credential."""
+    """Asynchronously acquires an Entra authentication token for Azure PostgreSQL.
+
+    Parameters:
+        credential (AsyncTokenCredential): Asynchronous credential used to obtain the token.
+
+    Returns:
+        str: The acquired authentication token to be used as the database password.
+    """
     logger.info("Acquiring Entra token for postgres password")
 
     async with credential:
@@ -24,7 +47,15 @@ async def get_entra_token_async(credential: AsyncTokenCredential) -> str:
 
 
 def get_entra_token(credential: TokenCredential | None) -> str:
-    """Get the password from Entra using the provided credential."""
+    """Acquires an Entra authentication token for Azure PostgreSQL synchronously.
+
+    Parameters:
+        credential (TokenCredential or None): Credential object used to obtain the token. 
+            If None, the default Azure credentials are used.
+
+    Returns:
+        str: The token string representing the authentication token.
+    """
     logger.info("Acquiring Entra token for postgres password")
     credential = credential or get_default_azure_credentials()
 
@@ -33,15 +64,23 @@ def get_entra_token(credential: TokenCredential | None) -> str:
 
 @lru_cache(maxsize=1)
 def get_default_azure_credentials() -> DefaultAzureCredential:
-    """Get the default Azure credentials.
+    """Retrieves and caches the default Azure credentials.
 
-    This method caches the credentials to avoid creating new instances.
+    Returns:
+        DefaultAzureCredential: A singleton instance of the default Azure credentials.
     """
     return DefaultAzureCredential()
 
 
 def decode_jwt(token):
-    """Decode the JWT payload to extract claims."""
+    """Decodes a JWT token to extract its payload claims.
+
+    Parameters:
+        token (str): The JWT token string in the standard three-part format.
+
+    Returns:
+        dict: A dictionary containing the claims extracted from the token payload.
+    """
     payload = token.split(".")[1]
     padding = "=" * (4 - len(payload) % 4)
     decoded_payload = base64.urlsafe_b64decode(payload + padding)
@@ -49,7 +88,18 @@ def decode_jwt(token):
 
 
 async def get_entra_conninfo(credential: TokenCredential | AsyncTokenCredential | None) -> dict[str, str]:
-    """Fetches a token returns the username and token."""
+    """Obtains connection information from Entra authentication for Azure PostgreSQL.
+
+    Parameters:
+        credential (TokenCredential, AsyncTokenCredential, or None): The credential used for token acquisition.
+            If None, the default Azure credentials are used.
+
+    Returns:
+        dict[str, str]: A dictionary with 'user' and 'password' keys containing the username and token.
+    
+    Raises:
+        ValueError: If the username cannot be extracted from the token payload.
+    """
     # Fetch a new token and extract the username
     if isinstance(credential, AsyncTokenCredential):
         token = await get_entra_token_async(credential)
@@ -64,11 +114,25 @@ async def get_entra_conninfo(credential: TokenCredential | AsyncTokenCredential 
 
 
 class AsyncEntraConnection(AsyncConnection):
-    """Asynchronous connection class for using Entra auth with Azure DB for PostgreSQL."""
-
+    """Asynchronous connection class for using Entra authentication with Azure PostgreSQL."""
+    
     @classmethod
     async def connect(cls, *args, **kwargs):
-        """Establish an asynchronous connection using Entra auth with Azure DB for PostgreSQL."""
+        """Establishes an asynchronous PostgreSQL connection using Entra authentication.
+
+        The method checks for provided credentials. If the 'user' or 'password' are not set
+        in the keyword arguments, it acquires them from Entra via the provided or default credential.
+
+        Parameters:
+            *args: Positional arguments to be forwarded to the parent connection method.
+            **kwargs: Keyword arguments including optional 'credential', and optionally 'user' and 'password'.
+
+        Returns:
+            AsyncConnection: An open asynchronous connection to the PostgreSQL database.
+
+        Raises:
+            ValueError: If the provided credential is not a valid TokenCredential or AsyncTokenCredential.
+        """
         credential = kwargs.pop("credential", None)
         if credential and not isinstance(credential, (TokenCredential, AsyncTokenCredential)):
             raise ValueError("credential must be a TokenCredential or AsyncTokenCredential")

@@ -17,6 +17,8 @@ dotnet build
 
 Before running the examples, you need to configure your database and Azure OpenAI settings. Use the `appsettings.example.json` file in the `dotnet` directory as a template to create an `appsettings.json` file with the proper settings for your database. Update the connection details for your PostgreSQL database and Azure OpenAI instance in the `appsettings.json` file.
 
+This project will work with any PostgreSQL instance that has pgvector installed.
+
 ### Using Azure DB for PostgreSQL
 
 This project includes connection logic to use Azure DB for PostgreSQL with Entra authentication. If `EntraAuthentication` is set to true in the `Postgres` section of the `appsettings.json, Entra Authentication is used with DefaultAzureCredentials. You'll need to be logged into the Azure CLI to correctly authenticate with your Entra credentials.
