@@ -8,7 +8,7 @@ from semantic_kernel.connectors.ai.open_ai.services.azure_chat_completion import
 from semantic_kernel.connectors.ai.open_ai.services.azure_text_embedding import AzureTextEmbedding
 from semantic_kernel.connectors.memory.postgres import PostgresCollection, PostgresSettings
 from semantic_kernel.contents.chat_history import ChatHistory
-from semantic_kernel.data.record_definition.vector_store_record_utils import VectorStoreRecordUtils
+from semantic_kernel.data.vector_search import add_vector_to_records
 from semantic_kernel.data.text_search.vector_store_text_search import VectorStoreTextSearch
 from semantic_kernel.data.vector_search.vector_search_options import VectorSearchOptions
 from semantic_kernel.functions.kernel_arguments import KernelArguments
@@ -53,7 +53,7 @@ async def load_arxiv_papers(
         # Process arxiv papers in batches of 20
         for i in range(0, len(arxiv_papers), 20):
             # Add embeddings to the abstracts of the papers
-            records = await VectorStoreRecordUtils(kernel).add_vector_to_records(
+            records = await add_vector_to_records(kernel, 
                 arxiv_papers[i : i + 20], data_model_type=ArxivPaper
             )
             # Upsert the records into the collection
