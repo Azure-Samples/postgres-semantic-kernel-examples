@@ -1,18 +1,15 @@
 import textwrap
 
-from semantic_kernel.connectors.ai.function_choice_behavior import FunctionChoiceBehavior
-from semantic_kernel.connectors.ai.open_ai.prompt_execution_settings.azure_chat_prompt_execution_settings import (
+from semantic_kernel.connectors.ai import FunctionChoiceBehavior
+from semantic_kernel.connectors.ai.open_ai import (
+    AzureChatCompletion,
     AzureChatPromptExecutionSettings,
+    AzureTextEmbedding,
 )
-from semantic_kernel.connectors.ai.open_ai.services.azure_chat_completion import AzureChatCompletion
-from semantic_kernel.connectors.ai.open_ai.services.azure_text_embedding import AzureTextEmbedding
 from semantic_kernel.connectors.memory.postgres import PostgresCollection, PostgresSettings
-from semantic_kernel.contents.chat_history import ChatHistory
-from semantic_kernel.data.vector_search import add_vector_to_records
-from semantic_kernel.data.text_search.vector_store_text_search import VectorStoreTextSearch
-from semantic_kernel.data.vector_search.vector_search_options import VectorSearchOptions
-from semantic_kernel.functions.kernel_arguments import KernelArguments
-from semantic_kernel.functions.kernel_parameter_metadata import KernelParameterMetadata
+from semantic_kernel.contents import ChatHistory
+from semantic_kernel.data import VectorSearchOptions, add_vector_to_records
+from semantic_kernel.functions import KernelArguments, KernelParameterMetadata
 from semantic_kernel.kernel import Kernel
 
 from ..entra_connection import AsyncEntraConnection
@@ -36,7 +33,7 @@ async def load_arxiv_papers(
     kernel.add_service(text_embedding)
 
     # Create a connection pool to use with the PostgresCollection
-    pg_settings = PostgresSettings.create(env_file_path=env_file_path)
+    pg_settings = PostgresSettings(env_file_path=env_file_path)
     print(f"Creating connection pool to {pg_settings.get_connection_args()['host']}...")
     connection_pool = await pg_settings.create_connection_pool(connection_class=AsyncEntraConnection)
     async with connection_pool:
@@ -53,11 +50,9 @@ async def load_arxiv_papers(
         # Process arxiv papers in batches of 20
         for i in range(0, len(arxiv_papers), 20):
             # Add embeddings to the abstracts of the papers
-            records = await add_vector_to_records(kernel, 
-                arxiv_papers[i : i + 20], data_model_type=ArxivPaper
-            )
+            records = await add_vector_to_records(kernel, arxiv_papers[i : i + 20], data_model_type=ArxivPaper)
             # Upsert the records into the collection
-            await collection.upsert_batch(records)
+            await collection.upsert(records)
             print(f"...Loaded {i + 20} papers into the collection")
 
 
@@ -70,7 +65,7 @@ async def search_arxiv_papers(query: str, count: int = 3, env_file_path: str = "
     kernel.add_service(text_embedding)
 
     # Create a connection pool to use with the PostgresCollection
-    settings = PostgresSettings.create(env_file_path=env_file_path)
+    settings = PostgresSettings(env_file_path=env_file_path)
     connection_pool = await settings.create_connection_pool(connection_class=AsyncEntraConnection)
     async with connection_pool:
         collection = PostgresCollection[str, ArxivPaper](
@@ -80,9 +75,7 @@ async def search_arxiv_papers(query: str, count: int = 3, env_file_path: str = "
             connection_pool=connection_pool,
         )
 
-        text_search = VectorStoreTextSearch[ArxivPaper].from_vectorized_search(
-            collection, embedding_service=text_embedding
-        )
+        text_search = collection.create_text_search_from_vectorized_search(embedding_service=text_embedding)
 
         search_results = await text_search.get_search_results(
             query, options=VectorSearchOptions(top=count, include_total_count=True)
@@ -113,7 +106,7 @@ async def chat_with_arxiv_papers(env_file_path: str = ".env"):
     kernel.add_service(chat_completion)
 
     # Create a connection pool to use with the PostgresCollection
-    settings = PostgresSettings.create(env_file_path=env_file_path)
+    settings = PostgresSettings(env_file_path=env_file_path)
     connection_pool = await settings.create_connection_pool(connection_class=AsyncEntraConnection)
     async with connection_pool:
         collection = PostgresCollection[str, ArxivPaper](
@@ -123,9 +116,7 @@ async def chat_with_arxiv_papers(env_file_path: str = ".env"):
             connection_pool=connection_pool,
         )
 
-        text_search = VectorStoreTextSearch[ArxivPaper].from_vectorized_search(
-            collection, embedding_service=text_embedding
-        )
+        text_search = collection.create_text_search_from_vectorized_search(embedding_service=text_embedding)
 
         # Add the Azure AI Search plugin to the kernel
         kernel.add_functions(
