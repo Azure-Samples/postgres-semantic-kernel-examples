@@ -1,6 +1,7 @@
-import click
 import asyncio
 import sys
+
+import click
 
 from .rag.cli import rag_command
 
